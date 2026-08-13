@@ -1911,6 +1911,21 @@ pub enum Split {
     /// Splits on the transition after obtaining the Pimpillo
     PimpilloTrans,
     // endregion: Tools
+
+    // region: Collectables
+    /// Cogheart Piece 1 (Collectable)
+    ///
+    /// Splits when player picks up the first Cogheart Piece
+    CogheartPiece1,
+    /// Cogheart Piece 2 (Collectable)
+    ///
+    /// Splits when player picks up the second Cogheart Piece
+    CogheartPiece2,
+    /// Cogheart Piece 3 (Collectable)
+    ///
+    /// Splits when player picks up the third Cogheart Piece
+    CogheartPiece3,
+    // endregion: Collectables
 }
 
 impl StoreWidget for Split {
@@ -2551,6 +2566,14 @@ fn bench_split(store: &mut Store, e: &Env) -> bool {
         .is_some_and(|p| p.changed_to(&true))
 }
 
+fn cogheart_piece_split(e: &Env, store: &mut Store, amount: i32) -> Option<SplitterAction> {
+    if e.mem.deref(&e.pd.woke_song_chevalier).unwrap_or_default() {
+        return Some(SplitterAction::Skip);
+    }
+    let current = store.get_collectable_amount(&utf16!("Cog Heart Pieces"), e);
+    reached_up_to_split(amount, current)
+}
+
 pub fn continuous_splits(split: &Split, e: &Env, store: &mut Store) -> Option<SplitterAction> {
     let Env { mem, gm, pd } = e;
     let game_state: i32 = mem.deref(&gm.game_state).unwrap_or_default();
@@ -2861,10 +2884,10 @@ pub fn continuous_splits(split: &Split, e: &Env, store: &mut Store) -> Option<Sp
         // endregion: ThreefoldMelody
 
         // region: NeedleUpgrade
-        Split::NeedleUpgrade1 => reached_up_to_split(1, mem.deref(&pd.nail_upgrades)),
-        Split::NeedleUpgrade2 => reached_up_to_split(2, mem.deref(&pd.nail_upgrades)),
-        Split::NeedleUpgrade3 => reached_up_to_split(3, mem.deref(&pd.nail_upgrades)),
-        Split::NeedleUpgrade4 => reached_up_to_split(4, mem.deref(&pd.nail_upgrades)),
+        Split::NeedleUpgrade1 => reached_up_to_split(1, mem.deref(&pd.nail_upgrades).ok()),
+        Split::NeedleUpgrade2 => reached_up_to_split(2, mem.deref(&pd.nail_upgrades).ok()),
+        Split::NeedleUpgrade3 => reached_up_to_split(3, mem.deref(&pd.nail_upgrades).ok()),
+        Split::NeedleUpgrade4 => reached_up_to_split(4, mem.deref(&pd.nail_upgrades).ok()),
         // endregion: NeedleUpgrade
 
         // region: MaskShards
@@ -2932,17 +2955,17 @@ pub fn continuous_splits(split: &Split, e: &Env, store: &mut Store) -> Option<Sp
         // endregion SpoolFragments
 
         // region: ToolPouchLevels
-        Split::ToolPouch1 => reached_up_to_split(1, mem.deref(&pd.tool_pouch_upgrades)),
-        Split::ToolPouch2 => reached_up_to_split(2, mem.deref(&pd.tool_pouch_upgrades)),
-        Split::ToolPouch3 => reached_up_to_split(3, mem.deref(&pd.tool_pouch_upgrades)),
-        Split::ToolPouch4 => reached_up_to_split(4, mem.deref(&pd.tool_pouch_upgrades)),
+        Split::ToolPouch1 => reached_up_to_split(1, mem.deref(&pd.tool_pouch_upgrades).ok()),
+        Split::ToolPouch2 => reached_up_to_split(2, mem.deref(&pd.tool_pouch_upgrades).ok()),
+        Split::ToolPouch3 => reached_up_to_split(3, mem.deref(&pd.tool_pouch_upgrades).ok()),
+        Split::ToolPouch4 => reached_up_to_split(4, mem.deref(&pd.tool_pouch_upgrades).ok()),
         // endregion: ToolPouchLevels
 
         // region: CraftingKitLevels
-        Split::CraftingKit1 => reached_up_to_split(1, mem.deref(&pd.tool_kit_upgrades)),
-        Split::CraftingKit2 => reached_up_to_split(2, mem.deref(&pd.tool_kit_upgrades)),
-        Split::CraftingKit3 => reached_up_to_split(3, mem.deref(&pd.tool_kit_upgrades)),
-        Split::CraftingKit4 => reached_up_to_split(4, mem.deref(&pd.tool_kit_upgrades)),
+        Split::CraftingKit1 => reached_up_to_split(1, mem.deref(&pd.tool_kit_upgrades).ok()),
+        Split::CraftingKit2 => reached_up_to_split(2, mem.deref(&pd.tool_kit_upgrades).ok()),
+        Split::CraftingKit3 => reached_up_to_split(3, mem.deref(&pd.tool_kit_upgrades).ok()),
+        Split::CraftingKit4 => reached_up_to_split(4, mem.deref(&pd.tool_kit_upgrades).ok()),
         // endregion: CraftingKitLevels
 
         // region: Crests
@@ -3428,6 +3451,12 @@ pub fn continuous_splits(split: &Split, e: &Env, store: &mut Store) -> Option<Sp
         Split::SilkspeedAnklets => should_split(store.has_tool(&utf16!("Sprintmaster"), e)),
         Split::ThiefsMark => should_split(store.has_tool(&utf16!("Thief Charm"), e)),
         // endregion Tools
+
+        // region: Collectables
+        Split::CogheartPiece1 => cogheart_piece_split(e, store, 1),
+        Split::CogheartPiece2 => cogheart_piece_split(e, store, 2),
+        Split::CogheartPiece3 => cogheart_piece_split(e, store, 3),
+        // endregion: Collectables
 
         // else
         _ => should_split(false),

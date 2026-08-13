@@ -9,7 +9,10 @@ use asr::{
 
 #[cfg(feature = "split-index")]
 use crate::silksong_memory::get_timer_current_split_index;
-use crate::silksong_memory::{find_tool, get_timer_state, get_tools_version, read_tool, Env};
+use crate::silksong_memory::{
+    find_collectable, find_tool, get_collectables_version, get_timer_state, get_tools_version,
+    read_collectable, read_tool, Env,
+};
 
 struct StoreValue<A: 'static> {
     watcher: Watcher<A>,
@@ -102,6 +105,67 @@ impl ToolCache {
     }
 }
 
+/// Caches the lookup of a single collectable at a time: calls `find_collectable`
+/// only when the Collectables version changes or a different item is asked for,
+/// otherwise re-reads just the cached index.
+pub struct CollectableCache {
+    version: Option<i32>,
+    item: &'static [u16],
+    i: i32,
+    amount: Option<i32>,
+}
+
+impl CollectableCache {
+    fn new() -> Self {
+        CollectableCache {
+            version: None,
+            item: &[],
+            i: -1,
+            amount: None,
+        }
+    }
+
+    fn update_version(&mut self, e: Option<&Env>) {
+        match e {
+            None => {
+                self.version = None;
+                self.item = &[]
+            }
+            Some(Env { pd, mem, .. }) => {
+                let new = get_collectables_version(mem, pd);
+                if self.version != new {
+                    self.version = new;
+                    self.item = &[]
+                }
+            }
+        }
+    }
+
+    pub fn update_validity(&mut self, e: Option<&Env>) {
+        if !self.item.is_empty() {
+            self.update_version(e)
+        }
+    }
+
+    pub fn get_amount(&mut self, item_utf16: &'static [u16], e: &Env) -> Option<i32> {
+        self.update_version(Some(e));
+        self.version?;
+        if self.item != item_utf16 {
+            if let Some((i, amount)) = find_collectable(item_utf16, e.mem, e.pd) {
+                self.i = i;
+                self.amount = Some(amount);
+            } else {
+                self.i = -1;
+                self.amount = None;
+            }
+            self.item = item_utf16
+        } else if !self.i.is_negative() {
+            self.amount = read_collectable(self.i, e.mem, e.pd);
+        }
+        self.amount
+    }
+}
+
 pub struct Store {
     timer_state: StoreValue<TimerState>,
     #[cfg(feature = "split-index")]
@@ -110,6 +174,7 @@ pub struct Store {
     i32s: BTreeMap<&'static str, StoreValue<i32>>,
     strings: BTreeMap<&'static str, StoreValue<String>>,
     tools: ToolCache,
+    collectables: CollectableCache,
 }
 
 impl Store {
@@ -122,6 +187,7 @@ impl Store {
             i32s: BTreeMap::new(),
             strings: BTreeMap::new(),
             tools: ToolCache::new(),
+            collectables: CollectableCache::new(),
         }
     }
 
@@ -149,6 +215,10 @@ impl Store {
 
     pub fn has_tool(&mut self, tool_utf16: &'static [u16], e: &Env) -> bool {
         self.tools.has_tool(tool_utf16, e)
+    }
+
+    pub fn get_collectable_amount(&mut self, item_utf16: &'static [u16], e: &Env) -> Option<i32> {
+        self.collectables.get_amount(item_utf16, e)
     }
 
     pub fn get_bool_pair(&mut self, key: &str) -> Option<Pair<bool>> {
@@ -213,6 +283,7 @@ impl Store {
         #[cfg(feature = "split-index")]
         self.split_index.update(env);
         self.tools.update_validity(env);
+        self.collectables.update_validity(env);
         for v in self.bools.values_mut() {
             if v.update(env) {
                 v.interested = false;
