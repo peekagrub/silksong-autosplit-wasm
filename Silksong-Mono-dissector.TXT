@@ -2398,6 +2398,39 @@
 			methods
 			base class
 
+		1fb900e67c8 : CollectableItemsData
+			static fields
+			fields
+			methods
+			base class
+				1fb900f4678 : SerializableNamedList`2[CollectableItemsData+Data,CollectableItemsData+NamedData]
+					static fields
+					fields
+						10 : savedData (type: System.Collections.Generic.List<CollectableItemsData.NamedData>)
+						18 : RuntimeData (type: System.Collections.Generic.Dictionary<System.String,CollectableItemsData.Data>)
+					methods
+					base class
+		1fb900e68d8 : CollectableItemsData+Data
+			static fields
+			fields
+				10 : Amount (type: System.Int32)
+				14 : IsSeenMask (type: System.Int32)
+				18 : AmountWhileHidden (type: System.Int32)
+			methods
+			base class
+		1fb900e69e8 : CollectableItemsData+NamedData
+			static fields
+			fields
+			methods
+			base class
+				1fb900f4538 : SerializableNamedData`1[CollectableItemsData+Data]
+					static fields
+					fields
+						10 : Name (type: System.String)
+						18 : Data (type: CollectableItemsData.Data)
+					methods
+					base class
+
 		2ac9700d480 : SceneData
 			static fields
 				0 : _instance (type: SceneData)
